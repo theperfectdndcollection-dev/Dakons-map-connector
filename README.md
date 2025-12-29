@@ -1,4 +1,4 @@
-# Dakons MapConnector
+# Dakons MapConnector - test Jeroen
 
 MapConnector is a free, lightweight tool to connect maps using interactive pins.  
 It’s made for tabletop RPGs like D&D, with a focus on simplicity and visual clarity.
