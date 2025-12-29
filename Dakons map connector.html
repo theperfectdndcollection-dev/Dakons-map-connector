@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Interactive Image Navigator</title>
+        <style>:root { --color-background: #1a1a1a; --color-surface: #2d2d2d; --color-text: #e8e8e8; --color-text-secondary: #a0a0a0; --color-primary: #8b4513; --color-primary-hover: #a0522d; --color-border: rgba(139, 69, 19, 0.4); --color-secondary: rgba(139, 69, 19, 0.2); --color-secondary-hover: rgba(139, 69, 19, 0.3); --radius-base: 8px; --radius-lg: 12px; --space-8: 8px; --space-12: 12px; --space-16: 16px; --space-20: 20px; --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02); --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02); } @media (prefers-color-scheme: dark) { :root {  --color-background: #0d0d0d;  --color-surface: #1f1f1f;  --color-text: #f0e6d6;  --color-text-secondary: #b8a890;  --color-primary: #d4a574;  --color-primary-hover: #e6b886;  --color-border: rgba(212, 165, 116, 0.3);  --color-secondary: rgba(212, 165, 116, 0.15);  --color-secondary-hover: rgba(212, 165, 116, 0.25); } } * { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Modesto Condensed', 'Cinzel', Georgia, serif; background: var(--color-background); color: var(--color-text); margin: 0; padding: 0; overflow: hidden; } .container { width: 100vw; height: 100vh; margin: 0; position: relative; } .header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-16); background: rgba(29, 29, 29, 0.95); border-bottom: 2px solid var(--color-primary); border-top: 2px solid var(--color-primary); position: fixed; top: 0; left: 0; right: 0; z-index: 100; backdrop-filter: blur(10px); box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3); } @media (prefers-color-scheme: dark) { .header {  background: rgba(13, 13, 13, 0.95);  border-color: var(--color-primary); } } h1 { font-size: 28px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-primary); text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); } .controls { display: flex; gap: var(--space-12); } .btn { padding: var(--space-8) var(--space-16); border: 2px solid var(--color-primary); border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); } .btn-primary { background: var(--color-primary); color: #1a1a1a; } .btn-primary:hover { background: var(--color-primary-hover); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(139, 69, 19, 0.5); } .btn-secondary { background: var(--color-secondary); color: var(--color-text); } .btn-secondary:hover { background: var(--color-secondary-hover); transform: translateY(-2px); } .btn-reset { background: #8b0000; color: #f0e6d6; border-color: #a52a2a; } .btn-reset:hover { background: #a52a2a; transform: translateY(-2px); } .btn:disabled { opacity: 0.5; cursor: not-allowed; } .main-content { width: 100%; height: 100%; position: relative; } .sidebar { width: 320px; background: rgba(29, 29, 29, 0.95); padding: var(--space-16); border-radius: 4px; border: 2px solid #c7c7c7; position: fixed; left: var(--space-20); top: 80px; max-height: calc(100vh - 100px); overflow-y: auto; z-index: 50; backdrop-filter: blur(10px); box-shadow: 0 4px 16px rgba(255, 255, 255, 0.23); } @media (prefers-color-scheme: dark) { .sidebar {  background: rgba(13, 13, 13, 0.22);  background-color: rgba(31, 31, 31, 0.83); } } .sidebar h2 { font-size: 18px; margin-bottom: var(--space-16); } .upload-zone { border: 2px dashed var(--color-border); border-radius: var(--radius-base); padding: var(--space-20); text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: var(--space-16); } .upload-zone:hover { border-color: var(--color-primary); background: var(--color-secondary); } .upload-zone.dragover { border-color: var(--color-primary); background: var(--color-secondary); } .image-container { width: 100%; height: 100vh; background: var(--color-background); position: fixed; top: 0; left: 0; display: flex; align-items: center; justify-content: center; z-index: 1; } .image-wrapper { position: relative; width: 95vw; height: 95vh; display: flex; align-items: center; justify-content: center; cursor: grab; } .image-wrapper.dragging { cursor: grabbing; } .main-image { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; object-fit: contain; } .image-inner { position: relative; display: inline-block; line-height: 0;  /* remove inline-block whitespace gaps */ } .pin { position: absolute; width: 32px; height: 32px; cursor: pointer; transform: translate(-50%, -50%); transition: transform 0.2s; z-index: 10; } .pin:hover { transform: translate(-50%, -50%) scale(1.2); } .pin-preview { position: fixed; width: 32px; height: 32px; pointer-events: none; transform: translate(-50%, -50%); z-index: 1000; display: none; opacity: 0.6; } .pin-preview.active { display: block; } .pin-preview .pin-icon { width: 100%; height: 100%; background: var(--color-primary); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid white; box-shadow: var(--shadow-md); } .pin-icon { width: 100%; height: 100%; background: var(--color-primary); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid #1a1a1a; box-shadow: 0 2px 8px rgba(139, 69, 19, 0.6), 0 0 12px rgba(212, 165, 116, 0.4); } .placeholder { text-align: center; color: var(--color-text-secondary); } .placeholder svg { width: 64px; height: 64px; margin-bottom: var(--space-16); opacity: 0.3; } .pin-list { margin-top: var(--space-16); } .pin-item { padding: var(--space-12); background: var(--color-secondary); border-radius: var(--radius-base); margin-bottom: var(--space-8); font-size: 14px; display: flex; justify-content: space-between; align-items: center; gap: var(--space-8); } .pin-item-info { flex: 1; } .pin-item-actions { display: flex; gap: var(--space-8); } .pin-item button { background: none; border: none; color: var(--color-primary); cursor: pointer; font-size: 12px; padding: 4px 8px; } .pin-item button:hover { text-decoration: underline; } .pin-item button.delete-btn { color: #c01529; } .zoom-controls { position: fixed; bottom: var(--space-20); right: var(--space-20); display: flex; flex-direction: column; gap: var(--space-8); z-index: 50; } .zoom-btn { width: 48px; height: 48px; border-radius: 50%; background: rgba(252, 252, 249, 0.9); border: 1px solid var(--color-border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 24px; transition: all 0.2s; backdrop-filter: blur(10px); } @media (prefers-color-scheme: dark) { .zoom-btn {  background: rgba(38, 40, 40, 0.9); } } .zoom-btn:hover { background: var(--color-secondary-hover); transform: scale(1.1); } .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 200; align-items: center; justify-content: center; } .modal.active { display: flex; } .modal-content { background: var(--color-surface); padding: var(--space-20); border-radius: var(--radius-lg); max-width: 400px; width: 90%; } .modal-content h3 { margin-bottom: var(--space-16); } .modal-content input { width: 100%; padding: var(--space-8); border: 1px solid var(--color-border); border-radius: var(--radius-base); margin-bottom: var(--space-16); background: var(--color-background); color: var(--color-text); font-size: 14px; } .modal-actions { display: flex; gap: var(--space-8); justify-content: flex-end; } .image-switch-btn { position: fixed; bottom: 200px; right: var(--space-20); z-index: 50; display: none; } .image-switch-btn.visible { display: block; } .mode-indicator { padding: var(--space-8) var(--space-12); background: var(--color-secondary); border-radius: var(--radius-base); font-size: 12px; margin-bottom: var(--space-16); text-align: center; } .mode-toggle { display: flex; gap: var(--space-8); margin-bottom: var(--space-16); } .mode-toggle button { flex: 1; padding: var(--space-12); border: 2px solid var(--color-primary); border-radius: var(--radius-base); background: var(--color-secondary); color: var(--color-text); cursor: pointer; font-weight: 600; transition: all 0.2s; } .mode-toggle button.active { background: var(--color-primary); color: #1a1a1a; } .mode-toggle button:hover { transform: translateY(-2px); } .breadcrumb { display: flex; gap: var(--space-8); align-items: center; font-size: 12px; color: var(--color-text-secondary); margin-bottom: var(--space-16); } .breadcrumb-item { cursor: pointer; color: var(--color-primary); } .breadcrumb-item:hover { text-decoration: underline; } input[type="file"] { display: none; } .promo-credit { position: fixed; left: 50%; bottom: var(--space-20); transform: translateX(-50%); text-align: center; z-index: 60; padding: 8px 12px; background: rgba(29, 29, 29, 0.85); border: 1px solid var(--color-border); border-radius: var(--radius-base); backdrop-filter: blur(8px); box-shadow: var(--shadow-md); font-size: 12px; color: var(--color-text-secondary); user-select: none; max-width: 70vw; } @media (prefers-color-scheme: dark) { .promo-credit {  background: rgba(13, 13, 13, 0.85); } } .promo-credit a { color: var(--color-primary); text-decoration: none; font-weight: 700; } .promo-credit a:hover { text-decoration: underline; } .tool-controls { position: fixed; bottom: var(--space-20); left: var(--space-20); z-index: 55; display: flex; flex-direction: column; gap: var(--space-8); } .tool-btn.active { background: var(--color-primary); color: #1a1a1a; border-color: var(--color-primary); }</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Bebas+Neue&display=swap">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Big+Shoulders&display=swap">
+    </head>
+    <body>
+        <div class="container">
+            <div class="header" style="border-color: #cdcdcd;">
+                <h1 style="font-size: 50px; font-family: 'Big Shoulders', cursive;"><font face="Bebas Neue, sans-serif" style="color: #ffffff;">DAKONS <b style="font-size: 33px; font-family: 'Big Shoulders', cursive; color: #705940;">map connector</b></font></h1>
+                <div class="controls">
+                    <button class="btn btn-secondary" id="backBtn" disabled>← Previous Image</button>
+                    <button class="btn btn-primary" id="uploadBtn" style="background-image: linear-gradient(to top, rgb(77, 77, 77) 16%, rgb(100, 100, 100) 100%); color: #ffffff; border-color: #ffffff; outline: 0px; border-style: none;">📁 Upload Image</button>
+                    <button class="btn btn-primary" id="saveBtn" style="border-top-color: #000000; border-style: none; color: #ffffff; background-image: linear-gradient(to top, rgb(125, 125, 125) 0%, rgb(86, 86, 86) 100%);">💾 Save</button>
+                    <button class="btn btn-secondary" id="loadBtn" style="border-color: #c9c9c9; background-color: rgba(48, 48, 48, 0.17);">📂 Load</button>
+                    <button class="btn btn-reset" id="resetBtn" style="background-size: 0px; gap: 10px;">🗑️ Reset All</button>
+                </div>
+            </div>
+            <div class="main-content">
+                <div class="sidebar">
+                    <h2></h2>
+                    <h2></h2>
+                    <h2></h2>
+                    <div class="upload-zone" id="uploadZone">
+                        <p><strong>Drag an image here</strong></p>
+                        <p style="font-size: 12px; margin-top: 8px; color: var(--color-text-secondary);">or click to choose a file</p>
+                    </div>
+                    <button class="btn btn-secondary" id="uploadAltBtn" style="display: none; width: 100%; margin-bottom: 16px;">
+                        + Upload Alternate Image
+</button>
+                    <div class="mode-toggle" id="modeToggle" style="display: none;">
+                        <button id="panModeBtn" class="active">🖐️ Pan/Zoom</button>
+                        <button id="pinModeBtn">📍 Place Pin</button>
+                    </div>
+                    <div class="mode-indicator" id="modeIndicator">
+                        Mode: Upload main image
+</div>
+                    <div class="breadcrumb" id="breadcrumb"><span>Level 0</span>
+                    </div>
+                    <p style="font-size: 14px; margin-bottom: 12px;">Hi!<br>This is a free tool for connecting your maps. First, upload the main image. Then you can place pins in Pin Mode. You can also zoom and pan in Pan Mode. There&rsquo;s a pin drager in the bottom-left corner so you can drag and fix any pins you placed incorrectly, without having to start over after connecting your images.
+
+This tool was made by Kobe. You can check out the Discord for more updates and give feeback, and my socials are at the bottom</p>
+                    <p style="font-size: 14px; margin-bottom: 12px;">
+Have fun connecting your maps! &#127881;</p>
+                    <p style="font-size: 14px; margin-bottom: 12px;"></p>
+                    <div class="pin-list" id="pinList"></div>
+                </div>
+                <div class="image-container" id="imageContainer">
+                    <div class="placeholder">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <p>Upload an image to get started</p>
+                    </div>
+                </div>
+                <div class="pin-preview" id="pinPreview">
+                    <div class="pin-icon"></div>
+                </div>
+                <button class="zoom-btn image-switch-btn" id="switchImageBtn" title="Switch between main and alternate image">
+                    🔄
+</button>
+                <div class="zoom-controls">
+                    <button class="zoom-btn" id="zoomInBtn">+</button>
+                    <button class="zoom-btn" id="zoomOutBtn">−</button>
+                    <button class="zoom-btn" id="zoomResetBtn">⟲</button>
+                    <div class="tool-controls" id="toolControls" style="display:none;">
+                        <button class="zoom-btn tool-btn active" id="toolPanBtn" title="Pan/Zoom">🖐️</button>
+                        <button class="zoom-btn tool-btn" id="toolPinBtn" title="Place Pin">📍</button>
+                        <button class="zoom-btn tool-btn" id="toolMoveBtn" title="Move Pins">🧲</button>
+                    </div>
+                </div>
+            </div>
+            <div class="promo-credit" aria-label="Social media credit">
+                Check out: <a href="https://www.instagram.com/the_perfectdndcollection/" target="_blank" rel="noopener noreferrer">The_perfectDnDcollection</a>
+                on <a href="https://www.instagram.com/the_perfectdndcollection/" target="_blank" rel="noopener noreferrer">Insta</a> or<a href="https://www.tiktok.com/@the_perfectdndcollection" target="_blank" rel="noopener noreferrer">TikTok</a>
+            </div>
+            <div class="modal" id="pinNameModal">
+                <div class="modal-content">
+                    <h3>Pin Name</h3>
+                    <input type="text" id="pinNameInput" placeholder="Enter a name...">
+                    <label style="display:block; font-size: 13px; margin: 12px 0 6px; opacity: 0.9;">
+                        Pin kleur
+</label>
+                    <select id="pinColorSelect" style="width: 100%; height: 44px; border: 1px solid var(--color-border); border-radius: var(--radius-base); padding: 0 12px; margin-bottom: var(--space-16); background: var(--color-background); color: var(--color-text);">
+                        <option value="#1E88E5">Blue</option>
+                        <option value="#43A047">Green</option>
+                        <option value="#E53935">Red</option>
+                        <option value="#FB8C00">Orange</option>
+                        <option value="#8E24AA">Purple</option>
+                    </select>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="closePinNameModal()">Cancel</button>
+                        <button class="btn btn-primary" onclick="savePinName()">Save</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal" id="deleteConfirmModal">
+                <div class="modal-content">
+                    <h3>Delete Pin</h3>
+                    <p>Are you sure you want to delete this pin?</p>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                        <button class="btn btn-reset" onclick="confirmDeletePin()">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*">
+        <script>
+        // State management with localStorage
+        const STORAGE_KEY = 'imagePinsAppState';
+        
+        const state = {
+            navigationStack: [],
+            currentImage: null,
+            selectedPinId: null,
+            mode: 'add-image', // 'add-image' or 'add-pin'
+            interactionMode: 'pan', // 'pan' or 'pin'
+            zoom: 1,
+            pendingPinId: null,
+            pinToDelete: null,
+            showingAltImage: false,
+            panX: 0,
+            panY: 0,
+            isDragging: false,
+            dragStartX: 0,
+            dragStartY: 0,
+            lastMouseX: 0,
+            lastMouseY: 0,
+            pinDragId: null,
+isPinDragging: false,
+pinDragOffset: { x: 0, y: 0 },
+
+        };
+
+        // DOM elements
+        const uploadZone = document.getElementById('uploadZone');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const imageContainer = document.getElementById('imageContainer');
+        const backBtn = document.getElementById('backBtn');
+        const modeIndicator = document.getElementById('modeIndicator');
+        const breadcrumb = document.getElementById('breadcrumb');
+        const pinList = document.getElementById('pinList');
+        const resetBtn = document.getElementById('resetBtn');
+        const zoomInBtn = document.getElementById('zoomInBtn');
+        const zoomOutBtn = document.getElementById('zoomOutBtn');
+        const zoomResetBtn = document.getElementById('zoomResetBtn');
+        const switchImageBtn = document.getElementById('switchImageBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const uploadAltBtn = document.getElementById('uploadAltBtn');
+        const pinNameModal = document.getElementById('pinNameModal');
+        const pinNameInput = document.getElementById('pinNameInput');
+        const pinColorSelect = document.getElementById('pinColorSelect');
+
+        const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+        const modeToggle = document.getElementById('modeToggle');
+        const panModeBtn = document.getElementById('panModeBtn');
+        const pinModeBtn = document.getElementById('pinModeBtn');
+        const toolControls = document.getElementById('toolControls');
+const toolPanBtn = document.getElementById('toolPanBtn');
+const toolPinBtn = document.getElementById('toolPinBtn');
+const toolMoveBtn = document.getElementById('toolMoveBtn');
+
+
+        // Image class
+        class ImageNode {
+            constructor(src, parentPinId = null) {
+                this.id = Date.now() + Math.random();
+                this.src = src;
+                this.altSrc = null;
+                this.pins = [];
+                this.parentPinId = parentPinId;
+            }
+
+            addPin(x, y, name = '', color = '#1E88E5') {
+
+    const pin = {
+        id: Date.now() + Math.random(),
+        x,
+        y,
+        name,
+        color,
+        linkedImage: null
+    };
+    this.pins.push(pin);
+    return pin;
+}
+
+        }
+
+        // Initialize
+        function init() {
+            loadFromStorage();
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            // Upload events
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            // Drag and drop
+            uploadZone.addEventListener('click', () => fileInput.click());
+            uploadZone.addEventListener('dragover', handleDragOver);
+            uploadZone.addEventListener('dragleave', handleDragLeave);
+            uploadZone.addEventListener('drop', handleDrop);
+
+            // Back button
+            backBtn.addEventListener('click', navigateBack);
+
+            // Reset button
+            resetBtn.addEventListener('click', resetApp);
+
+            // Zoom controls
+            zoomInBtn.addEventListener('click', () => setZoom(state.zoom + 0.2));
+            zoomOutBtn.addEventListener('click', () => setZoom(state.zoom - 0.2));
+            zoomResetBtn.addEventListener('click', () => setZoom(1));
+
+            // Switch image button
+            switchImageBtn.addEventListener('click', toggleAltImage);
+
+            // Upload alt button
+            uploadAltBtn.addEventListener('click', uploadAltImage);
+
+            // Save button
+            saveBtn.addEventListener('click', saveToFile);
+
+            // Load button
+            document.getElementById('loadBtn').addEventListener('click', loadFromFile);
+
+            // Mode toggle buttons
+            panModeBtn.addEventListener('click', () => setInteractionMode('pan'));
+            pinModeBtn.addEventListener('click', () => setInteractionMode('pin'));
+
+            // Image container click for pins
+            imageContainer.addEventListener('click', handleImageClick);
+
+            // Mouse wheel zoom (Pan/Zoom mode)
+            imageContainer.addEventListener('wheel', handleWheelZoom, { passive: false });
+
+            // Pan functionality
+            imageContainer.addEventListener('mousedown', handlePanStart);
+            document.addEventListener('mousemove', handlePanMove);
+            document.addEventListener('mouseup', handlePanEnd);
+            document.addEventListener('mousemove', movePinDrag);
+document.addEventListener('mouseup', endPinDrag);
+
+
+            if (toolPanBtn) toolPanBtn.addEventListener('click', () => setInteractionMode('pan'));
+if (toolPinBtn) toolPinBtn.addEventListener('click', () => setInteractionMode('pin'));
+if (toolMoveBtn) toolMoveBtn.addEventListener('click', () => setInteractionMode('move'));
+
+
+            // Track mouse position and show pin preview
+            document.addEventListener('mousemove', (e) => {
+                state.lastMouseX = e.clientX;
+                state.lastMouseY = e.clientY;
+                updatePinPreview(e);
+            });
+        }
+
+        function updatePinPreview(e) {
+            const pinPreview = document.getElementById('pinPreview');
+            if (!pinPreview) return;
+
+            if (state.mode === 'add-pin' && state.interactionMode === 'pin' && state.currentImage && !state.isDragging) {
+                const img = imageContainer.querySelector('.main-image');
+                if (img) {
+                    const imgRect = img.getBoundingClientRect();
+                    // Check if mouse is over the image
+                    if (e.clientX >= imgRect.left && e.clientX <= imgRect.right && 
+                        e.clientY >= imgRect.top && e.clientY <= imgRect.bottom) {
+                        pinPreview.classList.add('active');
+                        pinPreview.style.left = e.clientX + 'px';
+                        pinPreview.style.top = e.clientY + 'px';
+                        return;
+                    }
+                }
+            }
+            pinPreview.classList.remove('active');
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                loadImage(file);
+            }
+            fileInput.value = '';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                loadImage(file);
+            }
+        }
+
+        function loadImage(file, isAltImage = false) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imageSrc = e.target.result;
+                
+                if (isAltImage && state.currentImage) {
+                    // Load alternative image
+                    state.currentImage.altSrc = imageSrc;
+                    renderImage();
+                } else if (state.mode === 'add-image' && state.selectedPinId === null) {
+                    // Load main image
+                    const imageNode = new ImageNode(imageSrc);
+                    state.navigationStack = [imageNode];
+                    state.currentImage = imageNode;
+                    state.mode = 'add-pin';
+                    renderImage();
+                } else if (state.mode === 'add-image' && state.selectedPinId !== null) {
+                    // Link image to pin
+                    const pin = findPinById(state.currentImage, state.selectedPinId);
+                    if (pin) {
+                        const imageNode = new ImageNode(imageSrc, state.selectedPinId);
+                        pin.linkedImage = imageNode;                    state.selectedPinId = null;
+                    state.mode = 'add-pin';
+                    renderImage();
+                    }
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function uploadAltImage() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    loadImage(file, true);
+                }
+            };
+            input.click();
+        }
+
+        function handleImageClick(e) {
+            // Allow clicks on image or wrapper, but not on pins
+            if (e.target.classList.contains('pin') || e.target.classList.contains('pin-icon')) return;
+            
+            // Don't place pins if we're dragging
+            if (state.isDragging) return;
+            
+            console.log('Image clicked - state:', {
+                mode: state.mode,
+                interactionMode: state.interactionMode,
+                hasCurrentImage: !!state.currentImage,
+                isDragging: state.isDragging
+            });
+            
+            if (state.mode !== 'add-pin' || !state.currentImage) {
+                console.log('Cannot place pin - wrong mode or no image');
+                return;
+            }
+            
+            // Only place pins in pin mode
+            if (state.interactionMode !== 'pin') {
+                console.log('Cannot place pin - not in pin interaction mode');
+                return;
+            }
+
+            
+            const layer = imageContainer.querySelector('.image-inner');
+            if (!layer) {
+                console.log('Cannot place pin - no image layer found');
+                return;
+            }
+
+            // Calculate position based on the rendered image layer (correct even when the image is letterboxed)
+            const rect = layer.getBoundingClientRect();
+
+            // Make sure click is within image bounds
+            if (e.clientX < rect.left || e.clientX > rect.right ||
+                e.clientY < rect.top || e.clientY > rect.bottom) {
+                console.log('Click outside image bounds');
+                return;
+            }
+
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+console.log('Placing pin at:', { x, y });
+            const pin = state.currentImage.addPin(x, y);
+            state.pendingPinId = pin.id;
+            openPinNameModal();
+        }
+
+        function renderImage() {
+            if (!state.currentImage) return;
+
+            const imageSrc = (state.showingAltImage && state.currentImage.altSrc) 
+                ? state.currentImage.altSrc 
+                : state.currentImage.src;
+
+            imageContainer.innerHTML = `
+                <div class="image-wrapper" style="transform: translate(${state.panX}px, ${state.panY}px) scale(${state.zoom}); transform-origin: center;">
+                    <div class="image-inner">
+                        <img src="${imageSrc}" class="main-image" alt="Image">
+                        ${renderPins()}
+                    </div>
+                </div>
+            `;
+
+            updateUI();
+        }
+
+        function renderPins() {
+            // Calculate adjusted pin positions based on zoom and pan
+            return state.currentImage.pins.map(pin => `
+                <div class="pin" style="left: ${pin.x}%; top: ${pin.y}%;" data-pin-id="${pin.id}">
+                   <div class="pin-icon" style="background: ${pin.color || 'var(--color-primary)'};"></div>
+
+                </div>
+            `).join('');
+        }
+
+        function updateUI() {
+            // Back button
+            backBtn.disabled = state.navigationStack.length <= 1;
+
+            // Switch image button
+            if (state.currentImage && state.currentImage.altSrc) {
+                switchImageBtn.classList.add('visible');
+                switchImageBtn.title = state.showingAltImage 
+                    ? 'Switch to main image' 
+                    : 'Switch to alternate image';
+            } else {
+                switchImageBtn.classList.remove('visible');
+            }
+
+            // Upload alt button visibility
+            if (state.currentImage && state.mode === 'add-pin') {
+                uploadAltBtn.style.display = 'block';
+                uploadAltBtn.textContent = state.currentImage.altSrc 
+                    ? '✏️ Change Alternate Image' 
+                    : '+ Upload Alternate Image';
+            } else {
+                uploadAltBtn.style.display = 'none';
+            }
+
+            // Mode toggle visibility
+            if (state.currentImage && state.mode === 'add-pin') {
+                modeToggle.style.display = 'flex';
+            } else {
+                modeToggle.style.display = 'none';
+            }
+if (toolControls) toolControls.style.display = state.currentImage ? 'flex' : 'none';
+
+            // Mode indicator
+            if (state.mode === 'add-image') {
+                modeIndicator.textContent = state.selectedPinId 
+                    ? 'Mode: Upload image for selected pin'
+                    : 'Mode: Upload main image';
+            } else {
+                modeIndicator.textContent = state.interactionMode === 'pin' 
+                    ? 'Mode: Click to place a pin'
+                    : 'Mode: Drag to pan, use the zoom buttons';
+            }
+
+            // Breadcrumb
+            breadcrumb.innerHTML = `<span>Level ${state.navigationStack.length - 1} | Zoom: ${Math.round(state.zoom * 100)}%</span>`;
+
+            // Pin list
+            if (state.currentImage && state.currentImage.pins.length > 0) {
+                pinList.innerHTML = '<h3 style="font-size: 14px; margin-bottom: 8px;">Pins on this image:</h3>' +
+                    state.currentImage.pins.map((pin, index) => `
+                        <div class="pin-item">
+                            <div class="pin-item-info">
+                                <strong>${pin.name || `Pin ${index + 1}`}</strong> ${pin.linkedImage ? '✓' : ''}
+                            </div>
+                            <div class="pin-item-actions">
+                                <button onclick="handlePinAction('${pin.id}')">${pin.linkedImage ? 'Open' : 'Link'}</button>
+                                <button onclick="editPinName('${pin.id}')">✏️</button>
+                                <button class="delete-btn" onclick="openDeleteModal('${pin.id}')">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('');
+            } else {
+                pinList.innerHTML = '';
+            }
+
+            // Setup pin click handlers
+         document.querySelectorAll('.pin').forEach(pinEl => {
+    const pinId = parseFloat(pinEl.dataset.pinId);
+
+    // In move-mode: mousedown start drag
+    pinEl.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        startPinDrag(e, pinId);
+    });
+
+    // In move-mode: click doet niets (anders zou je navigeren/linken)
+    pinEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (state.interactionMode === 'move') return;
+        handlePinClick(pinId);
+    });
+});
+
+        }
+
+        function handlePinClick(pinId) {
+            const pin = findPinById(state.currentImage, pinId);
+            if (!pin) return;
+
+            if (pin.linkedImage) {
+                // Navigate to linked image
+                state.navigationStack.push(pin.linkedImage);
+                state.currentImage = pin.linkedImage;
+                renderImage();
+            } else {
+                // Prepare to link image
+                state.selectedPinId = pinId;
+                state.mode = 'add-image';
+                updateUI();
+            }
+        }
+
+        function handlePinAction(pinId) {
+            handlePinClick(parseFloat(pinId));
+        }
+
+        function navigateBack() {
+            if (state.navigationStack.length > 1) {
+                state.navigationStack.pop();
+                state.currentImage = state.navigationStack[state.navigationStack.length - 1];
+                state.mode = 'add-pin';
+                state.selectedPinId = null;
+                state.showingAltImage = false;
+                renderImage();
+            }
+        }
+
+        function findPinById(imageNode, pinId) {
+            return imageNode.pins.find(p => p.id === pinId);
+        }
+
+        function setZoom(newZoom) {
+            state.zoom = Math.max(0.5, Math.min(3, newZoom));
+            renderImage();
+        }
+
+        function handleWheelZoom(e) {
+            // Only zoom when an image is loaded and we're in Pan/Zoom mode
+            if (state.mode !== 'add-pin' || !state.currentImage) return;
+            if (state.interactionMode !== 'pan') return;
+
+            // Prevent page scroll / browser zoom gesture from stealing the wheel
+            e.preventDefault();
+
+            // Smooth-ish zoom for mouse wheel + trackpad
+            const zoomFactor = Math.exp(-e.deltaY * 0.002);
+            const newZoom = state.zoom * zoomFactor;
+            setZoom(newZoom);
+        }
+
+        
+        function handlePanStart(e) {
+            if (e.target.classList.contains('pin') || e.target.classList.contains('pin-icon')) return;
+            
+            if (state.interactionMode === 'pan') {
+                state.isDragging = true;
+                state.dragStartX = e.clientX - state.panX;
+                state.dragStartY = e.clientY - state.panY;
+                const wrapper = imageContainer.querySelector('.image-wrapper');
+                if (wrapper) wrapper.classList.add('dragging');
+                e.preventDefault();
+            }
+        }
+
+        function handlePanMove(e) {
+            if (!state.isDragging) return;
+            e.preventDefault();
+            state.panX = e.clientX - state.dragStartX;
+            state.panY = e.clientY - state.dragStartY;
+            const wrapper = imageContainer.querySelector('.image-wrapper');
+            if (wrapper) {
+                wrapper.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+            }
+        }
+function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+}
+
+function startPinDrag(e, pinId) {
+    if (state.interactionMode !== 'move') return;
+    if (!state.currentImage) return;
+
+    const layer = imageContainer.querySelector('.image-inner');
+    if (!layer) return;
+
+    const rect = layer.getBoundingClientRect();
+    const pin = findPinById(state.currentImage, pinId);
+    if (!pin) return;
+
+    state.isPinDragging = true;
+    state.pinDragId = pinId;
+
+    // Offset zodat je pin niet “springt” naar je cursor
+    const pinPxX = rect.left + (pin.x / 100) * rect.width;
+    const pinPxY = rect.top + (pin.y / 100) * rect.height;
+    state.pinDragOffset.x = e.clientX - pinPxX;
+    state.pinDragOffset.y = e.clientY - pinPxY;
+
+    e.preventDefault();
+}
+
+function movePinDrag(e) {
+    if (!state.isPinDragging) return;
+    if (state.interactionMode !== 'move') return;
+
+    const layer = imageContainer.querySelector('.image-inner');
+    if (!layer) return;
+
+    const rect = layer.getBoundingClientRect();
+    const pin = findPinById(state.currentImage, state.pinDragId);
+    if (!pin) return;
+
+    const x = ((e.clientX - state.pinDragOffset.x - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - state.pinDragOffset.y - rect.top) / rect.height) * 100;
+
+    pin.x = clamp(x, 0, 100);
+    pin.y = clamp(y, 0, 100);
+
+    // Live updaten zonder full render
+    const pinEl = document.querySelector(`.pin[data-pin-id="${pin.id}"]`);
+    if (pinEl) {
+        pinEl.style.left = `${pin.x}%`;
+        pinEl.style.top = `${pin.y}%`;
+    }
+
+    e.preventDefault();
+}
+
+function endPinDrag() {
+    if (!state.isPinDragging) return;
+
+    state.isPinDragging = false;
+    state.pinDragId = null;
+
+    // Her-render voor zekerheid + lijst etc.
+    renderImage();
+}
+
+        function handlePanEnd(e) {
+            if (state.isDragging) {
+                // Small delay to prevent click event after drag
+                setTimeout(() => {
+                    state.isDragging = false;
+                }, 50);
+            }
+            const wrapper = imageContainer.querySelector('.image-wrapper');
+            if (wrapper) wrapper.classList.remove('dragging');
+        }
+
+      function setInteractionMode(mode) {
+    state.interactionMode = mode;
+
+    // Sidebar buttons (oude)
+    if (panModeBtn) panModeBtn.classList.toggle('active', mode === 'pan');
+    if (pinModeBtn) pinModeBtn.classList.toggle('active', mode === 'pin');
+
+    // Bottom-left buttons (nieuwe)
+    if (toolPanBtn) toolPanBtn.classList.toggle('active', mode === 'pan');
+    if (toolPinBtn) toolPinBtn.classList.toggle('active', mode === 'pin');
+    if (toolMoveBtn) toolMoveBtn.classList.toggle('active', mode === 'move');
+    
+
+    updateUI();
+}
+
+
+        function saveToFile() {
+            try {
+                const stateData = {
+                    navigationStack: state.navigationStack,
+                    mode: state.mode,
+                    selectedPinId: state.selectedPinId,
+                    zoom: state.zoom,
+                    timestamp: new Date().toISOString()
+                };
+                const dataStr = JSON.stringify(stateData, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dakons-backup-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                alert('✅ Project saved!');
+            } catch (e) {
+                console.error('Error while saving:', e);
+                alert('❌ Error while saving');
+            }
+        }
+
+        function loadFromFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const stateData = JSON.parse(event.target.result);
+                            state.navigationStack = (stateData.navigationStack || []).map(convertToImageNode);
+                            state.currentImage = state.navigationStack.length > 0 ? state.navigationStack[state.navigationStack.length - 1] : null;
+                            state.mode = 'add-pin';
+                            state.selectedPinId = null;
+                            state.zoom = stateData.zoom || 1;
+                            state.panX = 0;
+                            state.panY = 0;
+                            state.showingAltImage = false;
+                            state.isDragging = false;
+                            state.pendingPinId = null;
+                            state.pinToDelete = null;
+                            state.interactionMode = 'pin';
+                            
+                            if (state.currentImage) {
+                                // First render the image
+                                renderImage();
+                                
+                                // Then force pin mode after a small delay to ensure DOM is ready
+                                setTimeout(() => {
+                                    state.interactionMode = 'pin';
+                                    state.mode = 'add-pin';
+                                    
+                                    // Update mode buttons
+                                    const pinBtn = document.getElementById('pinModeBtn');
+                                    const panBtn = document.getElementById('panModeBtn');
+                                    if (pinBtn && panBtn) {
+                                        pinBtn.classList.add('active');
+                                        panBtn.classList.remove('active');
+                                    }
+                                    
+                                    // Show mode toggle
+                                    const toggle = document.getElementById('modeToggle');
+                                    if (toggle) toggle.style.display = 'flex';
+                                    
+                                    // Force UI update
+                                    updateUI();
+                                    
+                                    console.log('Pin mode activated - state:', {
+                                        mode: state.mode,
+                                        interactionMode: state.interactionMode,
+                                        hasCurrentImage: !!state.currentImage
+                                    });
+                                }, 100);
+                                
+                                alert('✅ Project loaded! You can now place pins.');
+                            } else {
+                                alert('❌ No valid data found');
+                            }
+                        } catch (err) {
+                            console.error('Error while loading:', err);
+                            alert('❌ Error loading file');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function toggleAltImage() {
+            state.showingAltImage = !state.showingAltImage;
+            renderImage();
+        }
+
+       function openPinNameModal() {
+    pinNameInput.value = '';
+   if (pinColorSelect) pinColorSelect.value = '#1E88E5';
+ // default
+    pinNameModal.classList.add('active');
+    pinNameInput.focus();
+}
+
+
+        function closePinNameModal() {
+            pinNameModal.classList.remove('active');
+            if (state.pendingPinId) {
+                // Remove pin if name was cancelled
+                const pinIndex = state.currentImage.pins.findIndex(p => p.id === state.pendingPinId);
+                if (pinIndex !== -1 && !state.currentImage.pins[pinIndex].name) {
+                    state.currentImage.pins.splice(pinIndex, 1);
+                }
+                state.pendingPinId = null;
+            }
+            renderImage();
+        }
+
+function savePinName() {
+    if (state.pendingPinId) {
+        const pin = findPinById(state.currentImage, state.pendingPinId);
+        if (pin) {
+            pin.name = pinNameInput.value.trim() || 'Unnamed Pin';
+            if (pinColorSelect) {
+                pin.color = pinColorSelect.value || pin.color || '#1E88E5';
+
+            }
+        }
+        state.pendingPinId = null;
+    }
+    pinNameModal.classList.remove('active');
+    renderImage();
+}
+
+
+        function editPinName(pinId) {
+    const pin = findPinById(state.currentImage, parseFloat(pinId));
+    if (pin) {
+        state.pendingPinId = pin.id;
+        pinNameInput.value = pin.name || '';
+       if (pinColorSelect) pinColorSelect.value = pin.color || '#1E88E5';
+
+        pinNameModal.classList.add('active');
+        pinNameInput.focus();
+    }
+}
+
+
+        function openDeleteModal(pinId) {
+            state.pinToDelete = parseFloat(pinId);
+            deleteConfirmModal.classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            deleteConfirmModal.classList.remove('active');
+            state.pinToDelete = null;
+        }
+
+        function confirmDeletePin() {
+            if (state.pinToDelete) {
+                const pinIndex = state.currentImage.pins.findIndex(p => p.id === state.pinToDelete);
+                if (pinIndex !== -1) {
+                    state.currentImage.pins.splice(pinIndex, 1);
+                    renderImage();
+                }
+                state.pinToDelete = null;
+            }
+            deleteConfirmModal.classList.remove('active');
+        }
+
+        // Storage functions - LocalStorage disabled, only manual save/load
+        function saveToStorage() {
+            // Automatic storage disabled - use manual save/load buttons only
+        }
+
+        function loadFromStorage() {
+            // Automatic storage disabled - use manual save/load buttons only
+        }
+
+        function resetApp() {
+            if (confirm('Are you sure you want to reset the app?')) {
+                location.reload();
+            }
+        }
+
+        function convertToImageNode(obj) {
+            const node = new ImageNode(obj.src, obj.parentPinId);
+            node.id = obj.id;
+            node.altSrc = obj.altSrc || null;
+
+           node.pins = obj.pins.map(pin => ({
+    id: pin.id,
+    x: pin.x,
+    y: pin.y,
+    name: pin.name || '',
+    color: pin.color || '#1E88E5',
+
+    linkedImage: pin.linkedImage ? convertToImageNode(pin.linkedImage) : null
+}));
+
+
+            return node;
+        }
+
+        // Start app
+        init();
+    </script>
+    </body>
+</html>
